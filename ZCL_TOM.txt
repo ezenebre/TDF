@@ -1,0 +1,456 @@
+class ZCL_TOM definition
+  public
+  final
+  create public .
+
+public section.
+
+  methods CONSTRUCTOR
+    importing
+      !IV_REPORT_ID type /TMF/DE_REPORT_ID
+      !IV_EMPRESA type /TMF/DE_EMPRESA
+      !IV_FILIAL type /TMF/DE_FILIAL
+      !IV_CNPJ_ROOT type /TMF/DE_CNPJ_ROOT
+      !IV_DT_INI type /TMF/DE_PERIOD_INI
+      !IV_DT_FIN type /TMF/DE_PERIOD_FIN
+      !IT_FILE type /TMF/S_SPED_OUTPUT_T .
+protected section.
+
+  data MV_RUN_ID type /TMF/PPID .
+  data MV_REPORT_ID type /TMF/DE_REPORT_ID .
+  constants MC_FILE_EXTENSION_TXT type /TMF/DE_FILE_TYPE value 'txt' ##NO_TEXT.
+  data MO_REPORT_RUN type ref to /TMF/CL_TOM_REPORT_RUN .
+  constants MC_ORGSTR_KEY type /TMF/DE_ORGSTR_KEY value 'CC' ##NO_TEXT.
+  data MV_EMPRESA type /TMF/DE_EMPRESA .
+  data MV_FILIAL type /TMF/DE_FILIAL .
+  data MV_DT_INI type /TMF/DE_PERIOD_INI .
+  data MV_DT_FIN type /TMF/DE_PERIOD_FIN .
+  data MV_CNPJ_ROOT type /TMF/DE_CNPJ_ROOT .
+  data MT_FILE type /TMF/S_SPED_OUTPUT_T .
+
+  methods GET_RUN_ID
+    returning
+      value(RV_RUN_ID) type /TMF/PPID .
+  methods SET_RUN_ID .
+  methods CREATE_REPORT_RUN
+    returning
+      value(RO_REPORT_RUN) type ref to /TMF/CL_TOM_REPORT_RUN .
+  methods SET_REPORT_ID
+    importing
+      !IV_DATA type /TMF/DE_REPORT_ID .
+  methods GET_REPORT_ID
+    returning
+      value(RV_DATA) type /TMF/DE_REPORT_ID .
+  methods SAVE_FILE .
+  methods SET_REPORT_FILE_DATA
+    returning
+      value(RO_REPORT_FILE) type ref to /TMF/CL_TOM_REPORT_FILE .
+  methods GET_EMPRESA
+    returning
+      value(RV_DATA) type /TMF/DE_EMPRESA .
+  methods SET_EMPRESA
+    importing
+      !IV_DATA type /TMF/DE_EMPRESA .
+  methods SET_FILIAL
+    importing
+      !IV_DATA type /TMF/DE_FILIAL .
+  methods GET_FILIAL
+    returning
+      value(RV_DATA) type /TMF/DE_FILIAL .
+  methods GET_CNPJ_ROOT
+    returning
+      value(RV_DATA) type /TMF/DE_CNPJ_ROOT .
+  methods SET_CNPJ_ROOT
+    importing
+      !IV_DATA type /TMF/DE_CNPJ_ROOT .
+  methods GET_DT_INI
+    returning
+      value(RV_DATA) type /TMF/DE_PERIOD_INI .
+  methods SET_DT_INI
+    importing
+      !IV_DATA type /TMF/DE_PERIOD_INI .
+  methods GET_DT_FIN
+    returning
+      value(RV_DATA) type /TMF/DE_PERIOD_FIN .
+  methods SET_DT_FIN
+    importing
+      !IV_DATA type /TMF/DE_PERIOD_FIN .
+  methods SET_FILE
+    importing
+      !IV_DATA type /TMF/S_SPED_OUTPUT_T .
+  methods GET_FILE
+    returning
+      value(RV_DATA) type /TMF/S_SPED_OUTPUT_T .
+private section.
+
+  methods GET_REPORT_DESCRIPTION
+    importing
+      !IV_REPORT_ID type /TMF/DE_REPORT_ID
+      !IV_SELECTION type CHAR30
+    returning
+      value(RV_DESCRIPTION) type /TMF/DE_DESCRICAO .
+  methods GET_FILE_NAME
+    importing
+      !IV_EXTENSION type /TMF/DE_FILE_TYPE
+    returning
+      value(RV_FILE_NAME) type /TMF/DE_FILE_NAME .
+  methods DEFINE_RUN_USAGE
+    importing
+      !IO_REPORT_RUN type ref to /TMF/CL_TOM_REPORT_RUN
+    returning
+      value(RV_RUN_TYPE) type /TMF/DE_REPORT_USAGE .
+ENDCLASS.
+
+
+
+CLASS /INFCO/GENCL0031 IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method /INFCO/GENCL0031->CONSTRUCTOR
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_REPORT_ID                   TYPE        /TMF/DE_REPORT_ID
+* | [--->] IV_EMPRESA                     TYPE        /TMF/DE_EMPRESA
+* | [--->] IV_FILIAL                      TYPE        /TMF/DE_FILIAL
+* | [--->] IV_CNPJ_ROOT                   TYPE        /TMF/DE_CNPJ_ROOT
+* | [--->] IV_DT_INI                      TYPE        /TMF/DE_PERIOD_INI
+* | [--->] IV_DT_FIN                      TYPE        /TMF/DE_PERIOD_FIN
+* | [--->] IT_FILE                        TYPE        /TMF/S_SPED_OUTPUT_T
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+    METHOD constructor.
+
+      "Set Parameters
+      set_report_id( iv_report_id ).
+      set_empresa( iv_empresa ).
+      set_filial( iv_filial ).
+      set_cnpj_root( iv_cnpj_root ).
+      set_dt_ini( iv_dt_ini ).
+      set_dt_fin( iv_dt_fin ).
+      set_file( it_file ).
+
+      " Create TOM report
+      mo_report_run = create_report_run( ).
+
+      " Save file to TOM.
+      save_file( ).
+
+    ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->CREATE_REPORT_RUN
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] RO_REPORT_RUN                  TYPE REF TO /TMF/CL_TOM_REPORT_RUN
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+    METHOD create_report_run.
+
+      "Get Report ID
+      DATA(lv_report_id) = get_report_id( ).
+
+      "Create Report Run Entity
+      ro_report_run = NEW /tmf/cl_tom_report_run( ).
+
+      "Set common fields
+      ro_report_run->set_report_id( CONV #( lv_report_id ) ).
+      ro_report_run->set_report_status( /tmf/cl_constants=>mo_tom->report_status-scheduled ).
+      ro_report_run->set_description( get_report_description( iv_report_id = lv_report_id iv_selection   = '' ) ).
+
+      ro_report_run->set_run_type( /tmf/cl_constants=>mo_tom->run_usage-draft ).
+      ro_report_run->set_orgstr_key( mc_orgstr_key ).
+      ro_report_run->set_initial_date( get_dt_ini( ) ).
+      ro_report_run->set_final_date( get_dt_fin( ) ).
+      ro_report_run->set_cnpj_root( get_cnpj_root( ) ).
+      ro_report_run->set_company_code( get_empresa( ) ).
+      ro_report_run->set_branch( get_filial( ) ).
+
+      /tmf/cl_tom_metadata=>create_report_run( ro_report_run ).
+
+    ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method /INFCO/GENCL0031->DEFINE_RUN_USAGE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IO_REPORT_RUN                  TYPE REF TO /TMF/CL_TOM_REPORT_RUN
+* | [<-()] RV_RUN_TYPE                    TYPE        /TMF/DE_REPORT_USAGE
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD define_run_usage.
+
+    "If it is a Draft Run, does not need to check rectication
+*    IF io_sped->get_parameters( )->get_draft_run( ) EQ abap_true.
+*      rv_run_type = /tmf/cl_constants=>mo_tom->run_usage-draft.
+*      RETURN.
+*    ENDIF.
+
+    "Get orginal reports with status completed for the same key
+    DATA(lt_orig_rep_runs) = /tmf/cl_tom_metadata=>get_report_runs(
+          iv_report_id      = CONV #( io_report_run->get_report_id( ) )
+          iv_report_key     = CONV #( io_report_run->get_report_key( ) )
+          iv_company_code   = CONV #( io_report_run->get_company_code( ) )
+          iv_branch         = CONV #( io_report_run->get_branch( ) )
+          iv_report_status  = CONV #( /tmf/cl_constants=>mo_tom->report_status-completed )
+          iv_initial_date   = io_report_run->get_initial_date( )
+          iv_final_date     = io_report_run->get_final_date( )
+          iv_run_type       = CONV #( /tmf/cl_constants=>mo_tom->run_usage-original )
+          iv_orgstr_key     = CONV #( io_report_run->get_orgstr_key( ) )
+          iv_cnpj_root      = CONV #( io_report_run->get_cnpj_root( ) )
+          iv_central_efd    = CONV #( io_report_run->get_central_efd( ) )
+          iv_ie             = CONV #( io_report_run->get_ie( ) ) ).
+
+
+    "If there is no original report with the same key, there is no need to rectify
+    IF lt_orig_rep_runs IS INITIAL.
+      rv_run_type = /tmf/cl_constants=>mo_tom->run_usage-original.
+      RETURN.
+    ENDIF.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->GET_CNPJ_ROOT
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] RV_DATA                        TYPE        /TMF/DE_CNPJ_ROOT
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method GET_CNPJ_ROOT.
+    rv_data = mv_cnpj_root.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->GET_DT_FIN
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] RV_DATA                        TYPE        /TMF/DE_PERIOD_FIN
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method GET_DT_FIN.
+    rv_data = mv_dt_fin.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->GET_DT_INI
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] RV_DATA                        TYPE        /TMF/DE_PERIOD_INI
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method GET_DT_INI.
+    rv_data = mv_dt_ini.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->GET_EMPRESA
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] RV_DATA                        TYPE        /TMF/DE_EMPRESA
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method GET_EMPRESA.
+    rv_data = mv_empresa.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->GET_FILE
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] RV_DATA                        TYPE        /TMF/S_SPED_OUTPUT_T
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method GET_FILE.
+    rv_data[] = mt_file[].
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method /INFCO/GENCL0031->GET_FILE_NAME
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_EXTENSION                   TYPE        /TMF/DE_FILE_TYPE
+* | [<-()] RV_FILE_NAME                   TYPE        /TMF/DE_FILE_NAME
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD get_file_name.
+
+    DATA(lv_report_name) = /tmf/cl_tom_metadata=>get_report( get_report_id( ) )->get_report_name( ).
+
+    "Removes special characters from file name
+    CALL FUNCTION 'SCP_REPLACE_STRANGE_CHARS'
+      EXPORTING
+        intext  = lv_report_name
+      IMPORTING
+        outtext = lv_report_name.
+
+    rv_file_name = | { lv_report_name } -| &&                                      " Report Name
+    | { sy-datum+6(2) }/{ sy-datum+4(2) }/{ sy-datum(4) } -| &&     " Run Date
+    | { sy-uzeit(2) }:{ sy-uzeit+2(2) }| &&                         " Run Time
+    |.{ to_lower( iv_extension ) } |.
+
+    CONDENSE rv_file_name.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->GET_FILIAL
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] RV_DATA                        TYPE        /TMF/DE_FILIAL
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method GET_FILIAL.
+    rv_data = mv_filial.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method /INFCO/GENCL0031->GET_REPORT_DESCRIPTION
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_REPORT_ID                   TYPE        /TMF/DE_REPORT_ID
+* | [--->] IV_SELECTION                   TYPE        CHAR30
+* | [<-()] RV_DESCRIPTION                 TYPE        /TMF/DE_DESCRICAO
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD get_report_description.
+    DATA lv_hora(8) TYPE c.
+    DATA lv_data(10) TYPE c.
+
+    WRITE sy-uzeit TO lv_hora.
+    WRITE sy-datum TO lv_data.
+
+    DATA(lv_report_name) = /tmf/cl_tom_metadata=>get_report( iv_report_id )->get_report_name( ).
+
+    CONCATENATE: lv_report_name iv_selection '-' lv_data lv_hora(5)
+    INTO rv_description SEPARATED BY space.
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->GET_REPORT_ID
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] RV_DATA                        TYPE        /TMF/DE_REPORT_ID
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method GET_REPORT_ID.
+    rv_data = mv_report_id.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->GET_RUN_ID
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] RV_RUN_ID                      TYPE        /TMF/PPID
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method GET_RUN_ID.
+
+    rv_run_id = mv_run_id.
+
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->SAVE_FILE
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD save_file.
+
+    "Get Storage Provider
+    DATA(lo_storage_provider) = /tmf/cl_storage_factory=>get_provider( /tmf/cl_constants=>mo_tom->run_usage-draft ).
+
+    DATA(lo_report_file) = set_report_file_data( ).
+
+    "Save Report File
+    lo_storage_provider->save_file_from_sped( io_report_file = lo_report_file
+    it_sped_file   = get_file( )
+    io_report_run  = mo_report_run ).
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->SET_CNPJ_ROOT
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_DATA                        TYPE        /TMF/DE_CNPJ_ROOT
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method SET_CNPJ_ROOT.
+    mv_cnpj_root = iv_data.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->SET_DT_FIN
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_DATA                        TYPE        /TMF/DE_PERIOD_FIN
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method SET_DT_FIN.
+    mv_dt_fin = iv_data.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->SET_DT_INI
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_DATA                        TYPE        /TMF/DE_PERIOD_INI
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method SET_DT_INI.
+    mv_dt_ini = iv_data.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->SET_EMPRESA
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_DATA                        TYPE        /TMF/DE_EMPRESA
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method SET_EMPRESA.
+    mv_empresa = iv_data.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->SET_FILE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_DATA                        TYPE        /TMF/S_SPED_OUTPUT_T
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD set_file.
+    mt_file[] = iv_data[].
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->SET_FILIAL
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_DATA                        TYPE        /TMF/DE_FILIAL
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method SET_FILIAL.
+    mv_filial = iv_data.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->SET_REPORT_FILE_DATA
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] RO_REPORT_FILE                 TYPE REF TO /TMF/CL_TOM_REPORT_FILE
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method SET_REPORT_FILE_DATA.
+
+  ro_report_file = NEW #( ).
+
+  ro_report_file->set_file_description( CONV #( TEXT-001 ) ).
+  ro_report_file->set_file_extension( mc_file_extension_txt ).
+  ro_report_file->set_file_name( get_file_name( mc_file_extension_txt ) ).
+  ro_report_file->set_file_type( /tmf/cl_constants=>mo_tom->file_type-appl ).
+  ro_report_file->set_run_id( mo_report_run->get_run_id( ) ).
+
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->SET_REPORT_ID
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_DATA                        TYPE        /TMF/DE_REPORT_ID
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method SET_REPORT_ID.
+    mv_report_id = iv_data.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Protected Method /INFCO/GENCL0031->SET_RUN_ID
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method SET_RUN_ID.
+
+    mv_run_id = /tmf/cl_external_log_service=>get_ppid( ).
+
+  endmethod.
+ENDCLASS.
