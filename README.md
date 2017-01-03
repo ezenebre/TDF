@@ -17,7 +17,7 @@ IT_FILE (Conteúdo do arquivo, é necessário apenas alimentar o campo REG da es
 
 English:
 
-The class ZCL_TOM was developed to use easily the TOM API from SAP TDF to make available ABAP developed files in TOM (Tax Obligation Monitor). For class implementation, you need to create a new fiscal report in SPRO transaction and inform the follow parameters:
+The class ZCL_TOM was developed to facilitate the use of the TOM API from SAP TDF to create available ABAP developed files in TOM (Tax Obligation Monitor). For class implementation, you need to create a new fiscal report in SPRO transaction and insert the follow parameters:
 
 IV_REPORT_ID (Report ID created by SPRO configuration);
 IV_EMPRESA (Company Code);
